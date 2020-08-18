@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:custom-metrics="http://www.mulesoft.org/schema/mule/custom-metrics" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/custom-metrics http://www.mulesoft.org/schema/mule/custom-metrics/current/mule-custom-metrics.xsd">
+	
+	
+	
+	 <flow name="checkout-flow" doc:id="f7595169-ee7a-45ed-a7c9-41933e7b7e1d" >
+		<set-variable value="#[attributes.headers.'x-correlation-id']" doc:name="Set Variable" doc:id="3bb402eb-8c6f-4a49-930f-eb870321acba" variableName="correlationid" />
+		<choice doc:name="Choice" doc:id="f18465fe-b221-46fb-973e-2404c0c0e90a">
+			<when expression="#[((randomInt(10) + 1) mod 2) == 0]">
+				<foreach doc:name="For Each" doc:id="cbf6707b-afd2-4470-bb7c-c3599bd2e6dc" collection="#[payload.items]">
+			<logger level="INFO" message="CorrelationID: #[vars.correlationid] Checkout - Product: #[payload.sku] Price: #[payload.price] Quantity: #[payload.quantity]" />
+					<custom-metrics:send doc:name="Send Custom Metric" doc:id="ec73e58d-4192-4e59-b22c-5b4d22270491" metricName="Checkout">
+			<custom-metrics:dimensions>
+				<custom-metrics:dimension dimensionName="Checkout_Item" value="#[payload.sku]" />
+			</custom-metrics:dimensions>
+			<custom-metrics:facts>
+				<custom-metrics:fact factName="Checkout_Item_Quantity" value="#[payload.quantity]" />
+							<custom-metrics:fact factName="Checkout_Item_Price" value="#[(payload.price default 0) * (payload.quantity default 0)]" />
+			</custom-metrics:facts>
+		</custom-metrics:send>
+		</foreach>
+			</when>
+			<otherwise>
+				<raise-error doc:name="Raise error" doc:id="9ef12f3c-0cdc-4a09-b043-bddfa9b278e5" type="MULE:CONNECTIVITY" description="Error connecting to server" />
+			</otherwise>
+		</choice>
+		<set-payload value="#[output application/json --- { message: 'Checkout completed successfully'}]" doc:name="Set Payload" doc:id="b9fb2e69-7eb3-426f-a060-1ab5ab8c8823" />
+	</flow>
+	</mule>
